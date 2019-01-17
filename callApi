@@ -3,8 +3,8 @@ function ajaxPost () {
         url: 'http://openam.example.com:8080/openam/json/realms/root/authenticate',
         type: 'POST',
         headers: {
-            'X-OpenAM-Username': 'beer',
-            'X-OpenAM-Password': 'P@ssw0rd',
+            'X-OpenAM-Username': '***',
+            'X-OpenAM-Password': '***',
             'Content-Type': 'application/json',
             'Accept-API-Version': 'resource=2.0, protocol=1.0'
         },
