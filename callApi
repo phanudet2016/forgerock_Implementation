@@ -1,0 +1,41 @@
+function ajaxPost () {
+    $.ajax({
+        url: 'http://openam.example.com:8080/openam/json/realms/root/authenticate',
+        type: 'POST',
+        headers: {
+            'X-OpenAM-Username': 'beer',
+            'X-OpenAM-Password': 'P@ssw0rd',
+            'Content-Type': 'application/json',
+            'Accept-API-Version': 'resource=2.0, protocol=1.0'
+        },
+        success: function( data, textStatus, jQxhr ){
+            console.log( data );
+        },
+        error: function( jqXhr, textStatus, errorThrown ){
+            console.log( errorThrown );
+        }
+    }).then((red) => {
+        console.log(red)
+    })
+}
+
+// function httpGetAsync() {    
+//     var req = {
+//         method: 'POST',
+//         url: 'http://openam.example.com:8080/openam/json/realms/root/authenticate'
+//     }
+//     console.log('URL: ' + req.url)
+//     var xmlHttp = new XMLHttpRequest();
+//     xmlHttp.onreadystatechange = function() { 
+//         if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+//             console.log(xmlHttp.response)
+//     }
+//     xmlHttp.open(req.method, req.url, true);
+//     xmlHttp.setRequestHeader('X-OpenAM-Username', 'beer')
+//     xmlHttp.setRequestHeader('Content-Type', 'application/json')
+//     xmlHttp.setRequestHeader('X-OpenAM-Password', 'P@ssw0rd')
+//     xmlHttp.setRequestHeader('Accept-API-Version', 'resource=2.0, protocol=1.0')
+//     xmlHttp.send(null);
+// }
+
+//httpGetAsync()
