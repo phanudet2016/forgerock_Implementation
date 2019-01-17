@@ -1,0 +1,1512 @@
+/*
+ * Disclaimer:
+ *
+ * The sample code described herein is provided on an "as is" basis, without
+ * warranty of any kind, to the fullest extent permitted by law. ForgeRock does not
+ * warrant or guarantee the individual success developers may have in implementing
+ * the sample code on their development platforms or in production configurations.
+ *
+ * ForgeRock does not warrant, guarantee or make any representations regarding the
+ * use, results of use, accuracy, timeliness or completeness of any data or
+ * information relating to the sample code. ForgeRock disclaims all warranties,
+ * expressed or implied, and in particular, disclaims all warranties of
+ * merchantability, and warranties related to the code, or any service or software
+ * related thereto.
+ *
+ * ForgeRock shall not be liable for any direct, indirect or consequential damages
+ * or costs of any type arising out of any action taken by you or others related to
+ * the sample code.
+ */
+
+/*
+ * Copyright (c) 2015-2018, ForgeRock, Inc., All rights reserved
+ * Use subject to license terms.
+ * Scott Fehrman, ForgeRock, Inc.
+ */
+
+/*
+ * Notes:
+ * ".dot" syntax references a "div"
+ * "#hash" syntax references a "id"
+ */
+
+/* global i18next, applicationName, useFineGrainedAuthz, i18nextJquery, frdp  */
+
+var _frdp_URL_base = window.location.pathname;  // '/apps/frdp'
+var _frdp_URL_themes = ''; // '/apps/frdp/rest/themes'
+var _frdp_URL_openam = ''; // '/openam'
+var _frdp_theme = '';
+var _frdp_cookieName = '';
+var _frdp_page_register = '';
+var _frdp_isLoggedIn = false;
+var _frdp_windowMode = 'replace'; //  "open" or "replace"
+var _frdp_token = null; // OpenAM token
+var _frdp_tileItem = 'frdpTileItem';
+var _isApprover = false;
+
+/*
+ * function: _fnClickTileItem:
+ * Called when a "tile" in the portal panel is clicked
+ */
+var _fnClickTileItem = function(event) {
+  event = event || window.event;
+
+  var url = null;
+  var target = null;
+  var item = null;
+
+  item = event.currentTarget[_frdp_tileItem];
+
+  if ( item ) {
+    url = item.data;
+
+    if (item.target && item.target.length > 0) {
+      switch (item.target) {
+        case "_id":
+          target = item.id;
+        break;
+        case "_self":
+          target = null;
+        break;
+        default:
+          target = item.target;
+        break;
+      }
+    }
+
+    if ( target ) {
+      window.open(url, target);
+    } else {
+      if ( _frdp_windowMode === "open" ) {
+        target = "_" + item.id;
+        window.open(url, target);
+      } else {
+        //  window.location.replace(url);
+        window.location.href = url;
+      }
+    }
+  } else {
+    console.error("_fnClickTileItem: " +
+      "item is null, event.currentTarget is missing '" + _frdp_tileItem + "'");
+  }
+};
+
+$(document).ready(function () {
+
+    var defaultTheme = 'fitness';
+    var file_css = 'apps/portal/css/portal.css';
+    var themeData = {};
+    var img_applogo = $('#frdp-navbar-logo');
+    var span_appname = $('#frdp-navbar-title');
+    var pageResetPassword = '/user/#passwordReset/'; // TODO
+    var pageDashboard = '/user/#profile/details';
+    var pageSession = '/apps/frdp/sessionInfo.jsp';
+    var div_main = $("#frdp-main");
+    var div_footer = $('#frdp-footer');
+    var div_legal = $('#frdp-legal');
+    var div_home = $('#frdp-main-home');
+    var div_home_row = $('#frdp-main-home-row');
+    var div_tiles = $('#frdp-main-tiles');
+    var div_tiles_row = $('#frdp-main-tiles-row');
+    var div_login = $('#frdp-main-login');
+    var div_profile = $('#frdp-main-profile');
+    var div_profile_info = $('#frdp-profile-information');
+    var div_approvals = $('#frdp-main-approvals');
+    var div_approvals_label = $('#frdp-approvals-heading-label');
+    var div_approvals_info = $('#frdp-approvals-information');
+    var ul_navbar_left = $('#frdp-navbar-left');
+    var a_logout = $('#frdp-navbar-logout');
+    var a_login_cancel = $('#frdp-login-cancel');
+    var a_username = $('#frdp-navbar-username');
+    var a_resetpassword = $('#frdp-login-linkresetpassword');
+    var userData = null;
+    var loginId = '';
+    var form_login = $('#frdp-form-login');
+    var msg_login = $('#frdp-login-message');
+    var input_username = $('#frdp-login-input-username');
+    var input_password = $('#frdp-login-input-password');
+    var btn_profile_close = $('#frdp-profile-close');
+    var btn_approvals_close = $('#frdp-approvals-close');
+    var btn_approvals_accept = null; // $('#frdp-approvals-accept');
+    var btn_approvals_reject = null; // $('#frdp-approvals-reject');
+    var intervalStatus = 10000; // milli seconds between checking user status
+    var current_panel = null;
+
+    /*
+     * panel values (Object.selector)
+     * #frdp-main-login
+     * #frdp-main-home
+     * #frdp-main-tiles
+     * #frdp-main-profile
+     * #frdp-main-approvals
+     */
+
+    var errorGetMenus = function (xhr, status, error) {
+        console.error("errorGetMenus(): Status='" + status
+           + "', Error='" + error
+           + "', XHR='" + JSON.stringify(xhr) + "'");
+    };
+
+    var errorValidation = function (xhr, status, error) {
+        console.error("errorValidation(): Status='" + status +
+           "', Error='" + error +
+           "', XHR='" + JSON.stringify(xhr) +
+           "', cookie='" + getCookie() + "'");
+
+        userData = null;
+        _frdp_isLoggedIn = false;
+        loginId = '';
+
+        setAnonymous();
+        getMenu();
+    };
+
+    var errorAuthenticate = function (xhr, status, error) {
+        console.info("errorAuthenticate(): Status='" + status +
+           "', Error='" + error +
+           "', XHR='" + JSON.stringify(xhr) +
+           "', cookie='" + getCookie() + "'");
+
+        msg_login.text(i18next.t('login.message.error.authenFailed'));
+        input_username.val('');
+        input_password.val('');
+        input_username.focus();
+
+        userData = null;
+        _frdp_isLoggedIn = false;
+        loginId = '';
+    };
+
+    var errorLogout = function (xhr, status, error) {
+        console.info("errorLogout(): Status='" + status +
+           "', Error='" + error +
+           "', XHR='" + JSON.stringify(xhr) +
+           "', cookie='" + getCookie() + "'");
+
+        userData = null;
+        _frdp_isLoggedIn = false;
+        loginId = '';
+
+        setAnonymous();
+        getMenu();
+    };
+
+    var errorGetTasks = function (xhr, status, error) {
+        div_approvals_info.empty();
+        div_approvals_info.html("<h5>No data (see console)</h5>");
+
+        console.error("errorGetTasks(): status='" + status +
+           "', Error='" + error +
+           "', XHR='" + JSON.stringify(xhr) + "'");
+    };
+
+    var successGetMenus = function (response, status, xhr) {
+        var data = null;
+
+        console.info("successGetMenus(): Info: data='" + JSON.stringify(response) + "'");
+
+        ul_navbar_left.empty();
+
+        // create the "Home" navbar item
+
+        data = new Object();
+        data.id = 'home';
+        data.icon = 'portal.menu.home.icon';
+        data.label = 'portal.menu.home.label';
+        data.desc = 'portal.menu.home.desc';
+
+        addMenu(data);
+
+        // loop through the menu data
+
+        $.each(response.menus, function (i, menu) {
+            addMenu(menu);
+        });
+
+        if (!_frdp_isLoggedIn) {
+            setAnonymous();
+        }
+
+        if (response.isApprover !== null) {
+            _isApprover = response.isApprover;
+        }
+
+        getItems('home'); // GOTO HOME
+    };
+
+    var successGetItems = function (response, status, xhr) {
+        console.info("successGetItems(): Info: data='" + JSON.stringify(response) + "'");
+
+        showMain(div_tiles);
+        div_tiles_row.empty();
+
+        if (response.sections) {
+            $.each(response.sections, function (i, section) {
+                if (section.items) {
+                    $.each(section.items, function (j, item) {
+                        addTileItem(item);
+                    });
+                }
+            });
+        }
+    };
+
+    var successValidation = function (data, status, xhr) {
+        var oreo = getCookie();
+
+        console.info("successValidation()" +
+           ": status='" + status + "'" +
+           ", data='" + JSON.stringify(data) + "'" +
+           ", XHR='" + JSON.stringify(xhr) + "'" +
+           ", cookie='" + oreo + "'");
+
+        if (data && data.username) {
+            loginId = data.username;
+            _frdp_isLoggedIn = true;
+            setAuthenticated();
+            getUserData();
+        } else {
+            console.error("successValidation(): Error: data='"
+               + JSON.stringify(data) + "', cookie='" + oreo + "'");
+        }
+
+        getMenu();
+    };
+
+    var successAuthenticate = function (data, status, xhr) {
+        console.info("successAuthenticate()" +
+           ": status='" + status + "'" +
+           ", data='" + JSON.stringify(data) + "'" +
+           ", XHR='" + JSON.stringify(xhr) + "'");
+
+        if (data) {
+            _frdp_isLoggedIn = true;
+            current_panel = "#frdp-main-home";
+            getUserSession(getCookie());
+        } else {
+            console.error("successAuthenticate(): data is empty, cookie='" + getCookie() + "'");
+        }
+    };
+
+    var successLogout = function (data, status, xhr) {
+        console.info("successLogout()" +
+           ": status='" + status + "'" +
+           ", data='" + JSON.stringify(data) + "'" +
+           ", XHR='" + JSON.stringify(xhr) + "'");
+
+        userData = null;
+        _frdp_isLoggedIn = false;
+        loginId = '';
+
+        setAnonymous();
+        getMenu();
+
+        window.location = _frdp_URL_base; // needed to clear old policy settings
+    };
+
+    var successGetTasks = function (data, status, xhr) {
+        console.info("successGetTasks()" +
+           ": status='" + status + "'" +
+           ", data='" + JSON.stringify(data) + "'" +
+           ", XHR='" + JSON.stringify(xhr) + "'");
+
+        var div_well = null;
+        var div_message = null;
+        var div_task_table = null;
+        var div_footer_row = null;
+        var div_footer_col_accept = null;
+        var div_footer_col_reject = null;
+        var table = null;
+        var thead = null;
+        var tbody = null;
+        var tr = null;
+        var tr_head = null;
+        var th_select = null;
+        var td_select = null;
+        var td_desc = null;
+        var td_task = null;
+        var td_user = null;
+        var span_user = null;
+        var select_all_none = null;
+        var disable_input = false;
+
+        // add click to header label to re-direct to OOTB Self Service UI
+
+        div_approvals_label.prop('title', i18next.t('approvals.header.desc')); //'OpenIDM Self-Service interface'
+        div_approvals_label.click(function () {
+            window.location.href = frdp.props.idp.services.openidm.endpoints.user;
+        });
+
+        // Get the element that will "contain" the table, clear it
+
+        div_approvals_info.empty();
+
+        div_well = $('<div>');
+        div_well.addClass('well');
+
+        div_task_table = $('<div>').prop('id', 'task-table');
+
+        table = $('<table>');
+        table.addClass('table');
+
+        // Table Header
+
+        thead = $('<thead>');
+        tr_head = $('<tr>');
+        th_select = $('<th>').prop('title', i18next.t('approvals.table.header.select.title')); // 'Select All / None'
+
+        select_all_none = $('<input type="checkbox">');
+        select_all_none.prop('id', 'frdp-select-all-none');
+        select_all_none.prop('name', 'selectAllNone');
+        th_select.append(select_all_none);
+
+        tr_head.append(th_select);
+        tr_head.append($('<th>')
+           .html(i18next.t('approvals.table.header.description.label'))
+           .prop('title', i18next.t('approvals.table.header.description.title'))
+           );
+        tr_head.append($('<th>')
+           .html(i18next.t('approvals.table.header.task.label'))
+           .prop('title', i18next.t('approvals.table.header.task.title'))
+           );
+        tr_head.append($('<th>')
+           .html(i18next.t('approvals.table.header.user.label'))
+           .prop('title', i18next.t('approvals.table.header.user.title'))
+           );
+
+        thead.append(tr_head);
+
+        table.append(thead);
+
+        // Table Body
+
+        tbody = $('<tbody>');
+        table.append(tbody);
+
+        // build the output structure
+
+        div_message = $('<div>').prop('id', 'task-msg');
+
+        div_task_table.append(table);
+
+        if (data) {
+            if (data.result.length > 0) {
+                $.each(data.result, function (i, request) {
+
+                    // Select checkbox
+
+                    td_select = $('<td>');
+                    td_select.prop('title', i18next.t('approvals.table.body.select.title'));
+                    td_select.append('<input type="checkbox" id="' + request._id + '" name="' + request._id + '" >');
+
+                    // Request
+
+                    td_desc = $('<td>');
+                    td_desc.prop('title', request.processDefinitionId + ' / ' + request.taskType);
+                    td_desc.html(request.name);
+
+                    if (request.taskType !== "assignee") {
+                        td_desc.addClass('assignee-group');
+                    }
+
+                    // Task
+
+                    td_task = $('<td>');
+                    td_task.prop('title', i18next.t('approvals.table.body.task.title') + ': ' + request._id);
+                    td_task.html(request.taskDefinitionKey);
+
+                    // User
+
+                    span_user = $('<span>');
+                    span_user.prop('title', i18next.t('approvals.table.body.user.title') + ': ' + request.userName);
+                    span_user.html(request.sn + ', ' + request.givenName);
+
+                    td_user = $('<td>');
+                    td_user.append(span_user);
+
+                    tr = $('<tr>');
+                    tr.append(td_select);
+                    tr.append(td_desc);
+                    tr.append(td_task);
+                    tr.append(td_user);
+
+                    tbody.append(tr);
+                });
+            } else {
+                div_message.html(i18next.t('approvals.none'));
+                disable_input = true;
+            }
+
+        } else {
+            console.error('successGetTasks(): Error: data is empty');
+            disable_input = true;
+        }
+
+        // Enable the "select all/none" checkbox
+
+        select_all_none.prop('disabled', disable_input);
+        select_all_none.change(function () {
+            $('input:checkbox').prop('checked', $(this).prop('checked'));
+        });
+
+        // Footer
+
+        btn_approvals_accept = $('<button>').addClass('btn btn-sm btn-success');
+        btn_approvals_accept.prop('type', 'button');
+        btn_approvals_accept.prop('id', 'frdp-approvals-accept');
+        btn_approvals_accept.prop('title', i18next.t('approvals.button.accept.title'));
+        btn_approvals_accept.prop('disabled', disable_input);
+        btn_approvals_accept.html('<i class="fa fa-check"></i> ' + i18next.t('approvals.button.accept.label'));
+        btn_approvals_accept.off().click(function () { // remove event handlers with .off()
+            processTasks(data.result, 'accept');
+        });
+
+        btn_approvals_reject = $('<button>').addClass('btn btn-sm btn-danger');
+        btn_approvals_reject.prop('type', 'button');
+        btn_approvals_reject.prop('id', 'frdp-approvals-accept');
+        btn_approvals_reject.prop('title', i18next.t('approvals.button.reject.title'));
+        btn_approvals_reject.prop('disabled', disable_input);
+        btn_approvals_reject.html('<i class="fa fa-trash"></i> ' + i18next.t('approvals.button.reject.label'));
+        btn_approvals_reject.off().click(function () { // remove event handlers with .off()
+            processTasks(data.result, 'reject');
+        });
+
+        div_footer_col_accept = $('<div>').addClass('col-sm-offset-8 col-sm-2');
+        div_footer_col_accept.append(btn_approvals_accept);
+
+        div_footer_col_reject = $('<div>').addClass('col-sm-2');
+        div_footer_col_reject.append(btn_approvals_reject);
+
+        div_footer_row = $('<div>').addClass('row');
+        div_footer_row.append(div_footer_col_accept);
+        div_footer_row.append(div_footer_col_reject);
+
+        // add components to the "well" then the panel
+
+        div_well.append(div_message);
+        div_well.append(div_task_table);
+        div_well.append($('<hr>'));
+        div_well.append(div_footer_row);
+
+        div_approvals_info.append(div_well);
+    };
+
+    var processTasks = function (input, action) {
+        console.info("processTasks(): action='" + action +
+           "', input='" + JSON.stringify(input) + "'");
+
+        var checked = [];
+        $('input[type=checkbox]:checked').each(function () {
+            checked.push(this.id);
+        });
+        var output = {};
+        var tasks = [];
+        var task = null;
+
+        /*
+         * input data:
+         * {
+         *    "id" : "taskId",
+         *    "action" : "accept",
+         *    "decisionId" : "adminDecision",
+         *    "decisionValue" : "accept"
+         * }
+         */
+
+        btn_approvals_accept.prop('disabled', true);
+        btn_approvals_reject.prop('disabled', true);
+
+        if (checked.length > 0)
+        {
+            $('#task-msg').html(i18next.t('approvals.message.processing')
+               + ' ... <b>' + action + '</b> ... '
+               + i18next.t('approvals.message.wait'));
+            $('#task-table').prop('disabled', true);
+            $('#approvalsAccept').prop('disabled', true);
+            $('#approvalsReject').prop('disabled', true);
+
+            $.each(checked, function (i, checkboxId) {
+                if (checkboxId !== 'selectAllNone') { // id of the "all/none" checkbox
+                    $.each(input, function (j, inputTask) {
+                        if (checkboxId === inputTask._id) {
+                            task = new Object();
+                            task.id = inputTask._id;
+                            task.action = action;
+                            task.decisionId = inputTask.decision._id;
+                            task.decisionValue = action;
+
+                            tasks.push(task);
+                        }
+                    });
+                }
+            });
+
+            output.tasks = tasks;
+
+            console.info("processTasks(): output='" + JSON.stringify(output) + "'");
+
+            updateTask(output);
+
+        } else {
+            $('#task-msg').html(i18next.t('approvals.none'));
+            getTasks();
+        }
+    };
+
+    /*
+     * functions
+     */
+
+    function initA() {
+        console.info("initA(): frdp.props: " + JSON.stringify(frdp.props));
+        _frdp_URL_themes = frdp.props.idp.services.rest.endpoints.themes;
+        _frdp_URL_openam = frdp.props.idp.services.openam.endpoints.default;
+        _frdp_cookieName = frdp.props.idp.services.openam.cookiename;
+        _frdp_page_register = frdp.props.idp.services.openidm.endpoints.user +
+           '/index.html#register/&returnParams=goto%3D' + frdp.props.protocol + '%3A%2F%2F' + frdp.props.idp.fqdn + '%2Fapps%2Ffrdp';
+//           '/index.html#register/';
+        initB();
+    }
+
+    function initB() { // get the configured theme
+        $.ajax({
+            type: 'GET',
+            url: _frdp_URL_themes, // ...apps/frdp/rest/themes
+            dataType: 'json',
+            error: function (xhr, status, error) {
+                console.error("initB(): GET Error: Using default theme: Status='" + status
+                   + "', error='" + error
+                   + "', status='" + status
+                   + "', xhr='" + JSON.stringify(xhr) + "'");
+                _frdp_theme = 'themes/' + defaultTheme;
+                initC(defaultTheme);
+                return;
+            },
+            success: function (data, status, xhr) {
+                if (data && data.id) {
+                    console.info("initB(): GET Success: Status='" + status
+                       + "', data.id='" + JSON.stringify(data.id)
+                       + "', status='" + status
+                       + "', xhr='" + JSON.stringify(xhr) + "'");
+                    _frdp_theme = "themes/" + data.id;
+                    initC(data.id); // send theme name: "fitness"
+                } else {
+                    console.error("initB(): GET Error, data or data.id is empty: Using default theme: Status='" + status
+                       + "', data='" + JSON.stringify(data)
+                       + "', status='" + status
+                       + "', xhr='" + xhr + "'");
+                    _frdp_theme = 'themes/' + defaultTheme;
+                    initC(defaultTheme);
+                }
+            }
+        });
+    }
+
+    function initC(themeId) { // get the theme data
+        $.ajax({
+            type: 'GET',
+            url: frdp.props.idp.services.rest.endpoints.themes + '/' + themeId, // /apps/frdp/rest/themes/fitness
+            dataType: 'json',
+            error: function (xhr, status, error) {
+                console.error("initC(): GET Error: Using default theme: Status='" + status
+                   + "', error='" + error
+                   + "', status='" + status
+                   + "', xhr='" + JSON.stringify(xhr) + "'");
+                initD(_frdp_theme + "/" + file_css);
+            },
+            success: function (data, status, xhr) {
+                if (data) {
+                    console.info("initC(): GET Success: Status='" + status
+                       + "', data.id='" + JSON.stringify(data.id)
+                       + "', status='" + status
+                       + "', xhr='" + JSON.stringify(xhr) + "'");
+                    themeData = data;
+                    initD(_frdp_theme + "/" + file_css);
+                } else {
+                    console.error("initC(): GET Error, data or data.id is empty: Using default theme: Status='" + status
+                       + "', data='" + JSON.stringify(data)
+                       + "', status='" + status
+                       + "', xhr='" + xhr + "'");
+                    initD(_frdp_theme + "/" + file_css);
+                }
+            }
+        });
+    }
+
+    function initD(filename) { // init dynamic CSS
+        var fileref = document.createElement("link");
+
+        console.info("initD(): filename='" + filename + "'");
+
+        fileref.setAttribute("rel", "stylesheet");
+        fileref.setAttribute("type", "text/css");
+        fileref.setAttribute("href", filename);
+
+        document.getElementsByTagName("head")[0].appendChild(fileref);
+
+        initE();
+    }
+
+    function initE() { // init UI objects
+
+        /*
+         *       themeData = {
+         *          apps : {
+         *             portal : {
+         *                navbar : {
+         *                   logo : "...",
+         *                   title : "..."
+         *                },
+         *                background : "..."
+         *             },
+         *             ...
+         *          }
+         *       }
+         */
+
+        var portalLogo = themeData.apps.portal.navbar.logo;
+        var portalBackground = themeData.apps.portal.background;
+
+        console.info("initE():\n" +
+           "URL base = '" + _frdp_URL_base + "'\n" +
+           "Theme path = '" + _frdp_theme + "'\n" +
+           "Portal logo = '" + portalLogo + "'\n" +
+           "Portal background = '" + portalBackground + "'\n" +
+           "Theme Data = '" + JSON.stringify(themeData) + "'");
+
+        div_legal.hide();
+        showMain();
+
+        div_footer.click(function () {     // toggle the debug information
+            div_legal.toggle();
+        });
+
+        if (portalLogo) {
+            img_applogo.attr("src", _frdp_theme + "/apps/portal/images/" + portalLogo); // old = "/images/portal/"
+            img_applogo.click(function () {
+                window.location.replace(_frdp_URL_base);
+            });
+        }
+
+        span_appname.click(function () {
+            window.location.replace(_frdp_URL_base);
+        });
+
+        // set the background
+
+        div_main.css("background-image", "url(" + _frdp_URL_base + _frdp_theme + "/apps/portal/images/" + portalBackground + ")"); // old = "/images/portal/"
+
+        a_login_cancel.click(function () {
+            showMain(div_home);
+        });
+
+        btn_profile_close.click(function () {
+            showMain(div_home);
+        });
+
+        btn_approvals_close.click(function () {
+            div_approvals_info.empty();
+            showMain(div_home);
+        });
+
+        initF();
+    }
+
+    function initF() { // i18next for internationalization
+        var i18nextOptions = {};
+        var backend = _frdp_URL_base + _frdp_theme + '/locales/{{lng}}/{{ns}}.json';
+
+        console.info("initF(): _frdp_theme='" + _frdp_theme + "', backend='" + backend + "'");
+
+        i18nextOptions = {
+            lng: window.navigator.userLanguage || window.navigator.language || 'en',
+            debug: false,
+            fallbackLng: 'en',
+            backend: {
+                loadPath: backend
+            }
+        };
+
+        i18next.use(window.i18nextXHRBackend);
+        i18next.init(i18nextOptions, function (err, t) {
+            i18nextJquery.init(i18next, $);
+            $('#frdp-navbar-title').html(i18next.t('ui.navbar.title.label'));
+            $('#frdp-navbar-title').attr('title', i18next.t('ui.navbar.title.desc'));
+            $('#frdp-navbar-logo').attr('title', i18next.t('ui.navbar.title.desc'));
+            $('#frdp-navbar-logout-desc').attr('title', i18next.t('ui.navbar.logout.desc'));
+            $('#frdp-navbar-logout-icon').addClass(i18next.t('ui.navbar.logout.icon'));
+            $('#frdp-navbar-logout-label').text(i18next.t('ui.navbar.logout.label'));
+            $('#frdp-footer').localize();
+            $('#frdp-legal').localize();
+            $('#frdp-login-heading-label').text(i18next.t('login.header'));
+            $('#frdp-login-message').text(i18next.t('login.message.initial'));
+            $('#frdp-login-label-username').text(i18next.t('attr.username.label'));
+            $('#frdp-login-label-password').text(i18next.t('attr.password.label'));
+            $('#frdp-login-submit').text(i18next.t('login.submit.label'));
+            $('#frdp-login-submit').attr('title', i18next.t('login.submit.desc'));
+            $('#frdp-login-cancel').text(i18next.t('login.cancel.label'));
+            $('#frdp-login-cancel').attr('title', i18next.t('login.cancel.desc'));
+            $('#frdp-login-linkresetpassword').text(i18next.t('login.reset.text'));
+            $('#frdp-login-linkresetpassword').attr('title', i18next.t('login.reset.title'));
+            $('#frdp-profile-heading-label').text(i18next.t('profile.header.label'));
+            $('#frdp-profile-close').text(i18next.t('profile.close.label'));
+            $('#frdp-profile-close').attr('title', i18next.t('profile.close.desc'));
+            $('#frdp-approvals-close').text(i18next.t('approvals.close.label'));
+            $('#frdp-approvals-close').attr('title', i18next.t('approvals.close.desc'));
+            $('#frdp-approvals-heading-label').text(i18next.t('approvals.header.label'));
+            $('#frdp-approvals-heading-label').attr('title', i18next.t('approvals.header.desc'));
+
+            console.info("i18next: release='" + i18next.t('release') + "'");
+
+            // ALL DONE INITIALIZING
+
+            checkLoggedIn();
+        });
+    }
+
+    // --------------------------------------------------
+
+    function updateTask(data)
+    {
+        console.info("updateTask(): data='" + JSON.stringify(data) + "'");
+        $.ajax({
+            type: 'PUT',
+            url: frdp.props.idp.services.rest.endpoints.workflow.tasks,
+            dataType: 'json',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            error: errorGetTasks,
+            success: getTasks
+        });
+    }
+
+    function getTasks() {
+        console.info("getTasks()");
+        $.ajax({
+            type: 'GET',
+            url: frdp.props.idp.services.rest.endpoints.workflow.tasks,
+            dataType: 'json',
+            error: errorGetTasks,
+            success: successGetTasks
+        });
+    }
+
+    function getUserSession(oreo) {
+        console.info("getUserSession(): cookie='" + oreo + "'");
+        if (oreo) {
+            $.ajax({
+                type: 'POST',
+                url: frdp.props.idp.services.openam.endpoints.default +
+                   '/json/realms/root/sessions?_action=getSessionInfo',
+                dataType: 'json',
+                contentType: 'application/json',
+                headers: {
+                    cookieName: oreo
+                },
+                error: errorValidation,
+                success: successValidation
+            });
+        } else {
+            console.error("getUserSession(): cookie is empty");
+        }
+    }
+
+    function getUserData() {
+        var oreo = getCookie();
+
+        console.info("getUserData(): loginId='" + loginId + "', cookie='" + oreo + "'");
+
+        if (loginId) {
+            if (oreo) {
+                $.ajax({
+                    type: 'GET',
+                    url: frdp.props.idp.services.openam.endpoints.default +
+                       '/json/users/' + loginId,
+                    dataType: 'json',
+                    contentType: 'application/json',
+                    headers: {
+                        cookieName: oreo
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("getUserData(): ERROR: status='" + status
+                           + "', Error='" + error + "', cookie='" + getCookie() + "'");
+                        userData = null;
+                        _frdp_isLoggedIn = false;
+                        loginId = '';
+                        setProfile();
+                    },
+                    success: function (data, status, xhr) {
+                        console.info("getUserData(): SUCCESS: data='"
+                           + JSON.stringify(data) + "'");
+                        if (data) {
+                            userData = data;
+                        } else {
+                            console.error("getUserData(): Error: data is empty");
+                        }
+                        setProfile();
+                    }
+                });
+            } else {
+                console.error("getUserData(): Error: cookie is empty");
+            }
+        } else {
+            console.error("getUserData(): Error: global variable 'loginId' is empty, cookie='" + oreo + "'");
+        }
+    }
+
+    function setProfile() {
+        div_profile_info.empty();
+
+        if (userData !== null) {
+            var profile = '<div class="well">'
+               + '<div class="row">'
+               + '<div class="col-sm-2 debug-label">' + i18next.t('attr.username.label') + '</div>'
+               + '<div class="col-sm-10">' + userData.username + '</div>'
+               + '</div>'
+               + '<div class="row">'
+               + '<div class="col-sm-2 debug-label">' + i18next.t('attr.realm.label') + '</div>'
+               + '<div class="col-sm-10">' + userData.realm + '</div>'
+               + '</div>'
+               + '<div class="row">'
+               + '<div class="col-sm-2 debug-label">' + i18next.t('attr.uid.label') + '</div>'
+               + '<div class="col-sm-10">' + userData.uid + '</div>'
+               + '</div>'
+               + '<div class="row">'
+               + '<div class="col-sm-2 debug-label">' + i18next.t('attr.givenName.label') + '</div>'
+               + '<div class="col-sm-10">' + userData.givenName + '</div>'
+               + '</div>'
+               + '<div class="row">'
+               + '<div class="col-sm-2 debug-label">' + i18next.t('attr.sn.label') + '</div>'
+               + '<div class="col-sm-10">' + userData.sn + '</div>'
+               + '</div>'
+               + '<div class="row">'
+               + '<div class="col-sm-2 debug-label">' + i18next.t('attr.cn.label') + '</div>'
+               + '<div class="col-sm-10">' + userData.cn + '</div>'
+               + '</div>'
+               + '<div class="row">'
+               + '<div class="col-sm-2 debug-label">' + i18next.t('attr.dn.label') + '</div>'
+               + '<div class="col-sm-10">' + userData.dn + '</div>'
+               + '</div>'
+               + '<div class="row">'
+               + '<div class="col-sm-2 debug-label">' + i18next.t('attr.mail.label') + '</div>'
+               + '<div class="col-sm-10">' + userData.mail + '</div>'
+               + '</div>'
+               + '</div>';
+
+            div_profile_info.html(profile);
+        } else {
+            div_profile_info.html("<h4>User Profile information is not available</h4>");
+        }
+    }
+
+    function addMenu(menu) {
+        var i = null;
+        var a = null;
+        var li = null;
+        var fa_icon = '';
+
+        fa_icon = i18next.t(menu.icon);
+
+        if (fa_icon !== '') {
+            i = $('<i>');
+            i.addClass('fa');
+            i.addClass('fa-fw');
+            i.addClass(fa_icon);
+        }
+
+        a = $('<a>');
+        a.attr('href', '#');
+        a.attr('id', menu.id);
+        a.prop('title', i18next.t(menu.desc));
+        if (i) {
+            a.append(i);
+            a.append('&nbsp;');
+        }
+        a.append(i18next.t(menu.label));
+        a.click(function (event) {
+            event = event || window.event;
+            getItems(event.currentTarget.id);
+        });
+
+        li = $('<li>');
+        li.append(a);
+
+        ul_navbar_left.append(li);
+    }
+
+    function addTileItem(item) {
+        /*
+         * <div class="col-sm-3">
+         *   <div class="well">
+         *     <div class="frdp-item-icon">
+         *        <i class="fa fa-fw fa-comment"></i>
+         *     </div>
+         *     <div class="frdp-item-text">Welcome</div>
+         *   </div>
+         * </div>
+         *
+         * item:
+         * {
+         *   data: "URL",
+         *   desc: "Hover over description",
+         *   icon: "fa-icon",
+         *   id: "unique_id",
+         *   label: "short description",
+         *   target: "target"
+         * }
+         */
+        var div_col = null;
+        var div_well = null;
+        var div_icon = null;
+        var div_label = null;
+        var i = null;
+
+        i = $('<i>');
+        i.addClass('fa');
+        i.addClass(i18next.t(item.icon));
+
+        div_icon = $('<div>');
+        div_icon.addClass('frdp-item-icon');
+        div_icon.append(i);
+
+        div_label = $('<div>');
+        div_label.addClass('frdp-item-text');
+        div_label.text(i18next.t(item.label));
+
+        div_well = $('<div>');
+        div_well.addClass('well');
+        div_well.addClass('frdp-well');
+        div_well.append(div_icon);
+        div_well.append(div_label);
+        div_well.prop('title', i18next.t(item.desc));
+
+        if (item.data) {
+            div_well.prop(_frdp_tileItem,item);
+            div_well.click(_fnClickTileItem);
+        }
+
+        div_col = $('<div>');
+        div_col.addClass('col-sm-3');
+        div_col.append(div_well);
+
+        div_tiles_row.append(div_col);
+    }
+
+    function addHomeItem(array) {
+        /*
+         * <div class="col-sm-3">
+         *   <div class="panel panel-default">
+         *     <div class="panel-heading">
+         *       <h3 class="panel-title">Title</h3>
+         *     </div>
+         *     <div class="panel-body frdp-home-item">
+         *       <a href="#">
+         *         <span class="fa-stack">
+         *           <i class="fa fa-circle fa-stack-2x"></i>
+         *           <i class="fa fa-cancel fa-stack-1x fa-inverse"></i>
+         *         </span>
+         *       </a>
+         *     </div>
+         *   </div>
+         * </div>
+         */
+
+        var div_col = null;
+        var div_panel = null;
+        var div_head = null;
+        var div_body = null;
+        var h = null;
+        var a = null;
+        var span = null;
+        var i_circle = null;
+        var i_icon = null;
+        var col_size = 'col-sm-4';
+
+        showMain(div_home);
+        div_home_row.empty();
+
+        if (_frdp_isLoggedIn) {
+            div_home_row.css("margin-top", "auto");
+        } else { // center anonymous
+            div_home_row.css("margin-top", "100px");
+            div_home_row.append($('<div class="col-sm-2">'));
+        }
+
+        $.each(array, function (index, item) {
+
+            i_icon = $('<i>');
+            i_icon.addClass('fa');
+            i_icon.addClass(i18next.t(item.icon));
+            i_icon.addClass('fa-stack-1x');
+            i_icon.addClass('fa-inverse');
+
+            i_circle = $('<i>');
+            i_circle.addClass('fa');
+            i_circle.addClass('fa-circle'); // fa-circle or fa-square
+            i_circle.addClass('fa-stack-2x');
+
+            span = $('<span>');
+            span.addClass('fa-stack');
+            span.addClass('frdp-home-item');
+            span.append(i_circle);
+            span.append(i_icon);
+
+            a = $('<a>');
+            a.attr('href', '#');
+            a.attr('title', i18next.t(item.desc));
+            a.append(span);
+
+            div_body = $('<div>');
+            div_body.addClass('panel-body');
+            div_body.addClass('frdp-home-panel-body');
+            div_body.append(a);
+
+            h = $('<h3>');
+            h.addClass('panel-title');
+            h.html(i18next.t(item.label));
+
+            div_head = $('<div>');
+            div_head.addClass('panel-heading');
+            div_head.append(h);
+
+            div_panel = $('<div>');
+            div_panel.addClass('panel');
+            div_panel.addClass('panel-default');
+            div_panel.addClass('frdp-home-panel');
+            div_panel.append(div_head);
+            div_panel.append(div_body);
+
+            if (item.action) {
+                a.click(item.action);
+            }
+
+            div_col = $('<div>');
+            div_col.addClass(col_size);
+            div_col.append(div_panel);
+
+            div_home_row.append(div_col);
+        });
+
+    }
+
+    /*
+     * getCookie()
+     * get "iPlanetDirectoryPro" browser cookie value from the DOM (document.cookie)
+     * the cookie value is a ";" delimited string with "name=value" pairs
+     * @returns {String}
+     */
+
+    function getCookie() {
+        // console.info("getCookie(): document.cookie='" + document.cookie + "'");
+
+        var name = _frdp_cookieName + '=';
+        var value = '';
+        var ca = document.cookie.split(';');
+        for (var i = 0; i < ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) === ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) === 0) {
+                value = c.substring(name.length, c.length);
+                break;
+            }
+        }
+
+        return value;
+    }
+
+    /*
+     * setCookie()
+     * set "iPlantDirectoryPro" browser cookie
+     * an empty token clears/removes the cookie (essentially)
+     * @param {type} token
+     * @returns {undefined}
+     */
+
+    function setCookie(token) {
+        var domain = '.' + frdp.props.idp.domainname; // '.frdpcloud.com'
+        var path = '/';
+        var oreo = encodeURIComponent(_frdp_cookieName) + '=';
+
+        if (token) {
+            oreo += encodeURIComponent(token);
+        }
+
+        oreo += '; domain=' + domain + ' ; path=' + path;
+
+        console.info("setCookie(): document.cookie='" + oreo + "'");
+        document.cookie = oreo;
+    }
+
+    function setAnonymous() {
+        a_username.hide();
+    }
+
+    function setAuthenticated() {
+        var i = null;
+
+        i = $('<i></i>');
+        i.addClass('fa');
+        i.addClass('fa-caret-down');
+
+        a_username.empty();
+        a_username.append(loginId + '&nbsp;');
+        a_username.append(i);
+        a_username.show();
+    }
+
+    function checkLoggedIn() {
+        var oreo = getCookie();
+
+        if (oreo) {
+            getUserSession(oreo);
+        } else {
+            _frdp_isLoggedIn = false;
+            userData = null;
+            loginId = '';
+            setAnonymous();
+        }
+        getMenu();
+    }
+
+    function getMenu() {
+        if (current_panel !== "#frdp-main-login") {
+            $.ajax({
+                type: 'GET',
+                url: frdp.props.idp.services.rest.endpoints.portal.menus,
+                dataType: 'json',
+                error: errorGetMenus,
+                success: successGetMenus
+            });
+        }
+    }
+
+    function getItems(menuId) {
+        var array = null;
+        var register = null;
+        var login = null;
+        var profile = null;
+        var approvals = null;
+        var selfservice = null;
+        var session = null;
+
+        console.info("getItems(): menuId='" + menuId + "', _isApprover=" + _isApprover);
+
+        if (menuId === 'home') {
+            array = new Array();
+
+            if (_frdp_isLoggedIn) {
+                profile = new Object();
+                profile.id = 'profile';
+                profile.label = 'portal.home.profile.label';
+                profile.desc = 'portal.home.profile.desc';
+                profile.icon = 'portal.home.profile.icon';
+                profile.action = function (event) {
+                    showMain(div_profile);
+                };
+                array.push(profile);
+
+                if (_isApprover) {
+                    approvals = new Object();
+                    approvals.id = 'approvals';
+                    approvals.label = 'portal.home.approvals.label';
+                    approvals.desc = 'portal.home.approvals.desc';
+                    approvals.icon = 'portal.home.approvals.icon';
+                    approvals.action = function (event) {
+                        showMain(div_approvals);
+                        getTasks();
+                    };
+                    array.push(approvals);
+                }
+
+                selfservice = new Object();
+                selfservice.id = 'selfservice';
+                selfservice.label = 'portal.home.selfservice.label';
+                selfservice.desc = 'portal.home.selfservice.desc';
+                selfservice.icon = 'portal.home.selfservice.icon';
+                selfservice.action = function (event) {
+                    if (_frdp_windowMode === "open") {
+                        window.open(pageDashboard, "_dashboard");
+                    } else {
+                        window.location.href = pageDashboard; //  window.location.replace(event.currentTarget.data);
+                    }
+                };
+                array.push(selfservice);
+
+                session = new Object();
+                session.id = 'session';
+                session.label = 'portal.home.session.label';
+                session.desc = 'portal.home.session.desc';
+                session.icon = 'portal.home.session.icon';
+                session.action = function (event) {
+                    if (_frdp_windowMode === "open") {
+                        window.open(pageSession, '_session');
+                    } else {
+                        window.location.href = pageSession; //  window.location.replace(event.currentTarget.data);
+                    }
+                };
+                array.push(session);
+
+                addHomeItem(array);
+            } else {
+                register = new Object();
+                register.id = 'register';
+                register.label = 'portal.home.register.label';
+                register.desc = 'portal.home.register.desc';
+                register.icon = 'portal.home.register.icon';
+                register.action = function (event) {
+                    var target = null;
+                    event = event || window.event;
+                    target = "_" + event.currentTarget.data;
+                    if (_frdp_windowMode === "open") {
+                        window.open(_frdp_page_register, target);
+                    } else {
+                        window.location.href = _frdp_page_register; //  window.location.replace(event.currentTarget.data);
+                    }
+                };
+                array.push(register);
+
+                login = new Object();
+                login.id = 'login';
+                login.label = 'portal.home.login.label';
+                login.desc = 'portal.home.login.desc';
+                login.icon = 'portal.home.login.icon';
+                login.action = function (event) {
+                    input_username.val('');
+                    input_password.val('');
+                    showMain(div_login);
+                    input_username.focus();
+                };
+                array.push(login);
+
+                addHomeItem(array);
+            }
+        } else {
+            $.ajax({
+                type: 'GET',
+                url: frdp.props.idp.services.rest.endpoints.portal.menus + '/' + menuId,
+                dataType: 'json',
+                error: errorGetMenus,
+                success: successGetItems
+            });
+        }
+    }
+
+    function showMain(div) {
+        div_login.hide();
+        div_profile.hide();
+        div_tiles.hide();
+        div_home.hide();
+        div_approvals.hide();
+        if (div) {
+            div.show();
+            if (div.selector) {
+                current_panel = div.selector;
+            } else {
+                current_panel = "undefined";
+            }
+        } else {
+            current_panel = "undefined";
+        }
+    }
+
+    function checkStatus() {
+        var d = new Date();
+        var t = d.toLocaleTimeString();
+        var oreo = null;
+
+        /*
+         * possible states:
+         *
+         * 1) currently "anon"
+         *    a) still "anon" ... do nothing
+         *    b) now "authen" ... update the UI
+         * 2) currently "authen"
+         *    a) still "authen" as same user ... do nothing
+         *    b) still "authen" as different user ... update the UI
+         *    c) now "anon" .. update the UI
+         */
+
+        oreo = getCookie();
+
+        if (oreo) { // authenticated, see if still valid
+            $.ajax({
+                type: 'POST',
+                url: frdp.props.idp.services.openam.endpoints.default +
+                   '/json/realms/root/sessions?_action=getSessionInfo',
+                dataType: 'json',
+                contentType: 'application/json',
+                headers: {
+                    cookieName: oreo
+                },
+                success: function (data, status, jqXHR) {
+                    if (data && data.username) {
+                        _frdp_isLoggedIn = true;
+                        if (data.username === loginId) {
+                            // same user, portal id and SSO username
+                            // all is good, do nothing
+
+                            console.info(t +
+                               " Authenticated, do nothing, same user, loginId='" +
+                               loginId + "', data.username='" + data.username + "'" +
+                               ", panel='" + current_panel + "'");
+                        } else {
+                            // portal loginId does not match SSO username
+                            // set portal loginId to SSO username value
+                            // set as authenitcated, get user data, upate menus
+
+                            console.info(t +
+                               " Authenticated, need updating, different user, loginId='" +
+                               loginId + "', data.username='" + data.username + "'" +
+                               ", panel='" + current_panel + "'");
+
+                            loginId = data.username;
+                            setAuthenticated();
+                            getUserData();
+                            getMenu();
+                        }
+                    } else {
+                        // validation was sucessful, but no returned data / username
+                        // this is not a "likely" condition
+                        // clear userdata / loginId and set to "anon", update menu
+
+                        console.info(t +
+                           " Authenticated, need updating, validation data is empty," +
+                           "loginId='" + loginId + "', panel='" + current_panel + "'");
+                        _frdp_isLoggedIn = false;
+
+                        userData = null;
+                        loginId = '';
+                        setAnonymous();
+                        getMenu();
+                    }
+                },
+                error: function (xhr, status, error) {
+                    // The user / browser has a SSO cookie but it's invalid
+                    // next successful login will update the SSO cookie
+                    // set user state to anonymous and update menu
+                    // nice the SSO cookie is "bad" remove / clear it
+                    // NOTE: removing the cookie from client is normally not done
+
+                    console.info(t +
+                       " Validation check failed: status='" + status +
+                       "', error='" + error + "', jqXHR='" + JSON.stringify(xhr) + "'" +
+                       ", panel='" + current_panel + "'");
+
+                    userData = null;
+                    loginId = '';
+                    _frdp_isLoggedIn = false;
+                    setCookie();
+                    setAnonymous();
+                    getMenu();
+                }
+            });
+        } else { // anonymous
+            if (_frdp_isLoggedIn) {
+                // there is no SSO cookie in the browser, user is anonymous
+                // but, the "portal" thinks the user is still logged in
+                // clear userdata / loginId and set to "anon", update menu
+
+                console.info(t +
+                   " Anonymous, need updating, isLoggedIn='" + _frdp_isLoggedIn + "'" +
+                   ", panel='" + current_panel + "'");
+
+                userData = null;
+                loginId = '';
+                _frdp_isLoggedIn = false;
+                setAnonymous();
+                getMenu();
+            } else {
+                // no sso cookie and "portal" thinks no one is logged in
+                // all is good, nothing to do
+                console.info(t +
+                   " Anonymous, do nothing, isLoggedIn='" + _frdp_isLoggedIn + "'" +
+                   ", panel='" + current_panel + "'");
+            }
+        }
+    }
+
+    /*
+     * execution
+     */
+
+    form_login.submit(function (event) {
+        var error = false;
+        var msg = '';
+        var ajax_method = 'POST';
+        var ajax_url = frdp.props.idp.services.openam.endpoints.default +
+           '/json/authenticate';
+
+        console.info("form_login.submit(event): cookie='" + getCookie() + "'");
+
+        event.preventDefault();
+
+        if (input_username.val() === '') {
+            error = true;
+            msg = i18next.t('login.message.error.emptyUsername');
+            input_username.focus();
+        } else {
+            if (input_password.val() === '') {
+                error = true;
+                msg = i18next.t('login.message.error.emptyPassword');
+                input_password.focus();
+            }
+        }
+
+        if (!error) {
+            console.info("form_login.submit(event): " +
+               "user='" + input_username.val() + "', " +
+               "password='" + input_password.val() + "'");
+
+            msg_login.text('Authenticating ... Please wait');
+
+            $.ajax({
+                type: ajax_method,
+                url: ajax_url,
+                dataType: 'json',
+                contentType: 'application/json',
+                data: {},
+                headers: {
+                    'X-OpenAM-Username': input_username.val(),
+                    'X-OpenAM-Password': input_password.val()
+                },
+                error: errorAuthenticate,
+                success: successAuthenticate
+            });
+        } else {
+            msg_login.text(msg);
+        }
+    });
+
+    a_resetpassword.click(function () {
+        // window.location.replace(pageResetPassword);
+        window.location.href = pageResetPassword;
+    });
+
+    a_logout.click(function (event) {
+        var oreo = getCookie();
+
+        console.info("a_logout.click(): cookie='" + oreo + "'");
+
+        $.ajax({
+            type: 'POST',
+            url: frdp.props.idp.services.openam.endpoints.default +
+               '/json/sessions/?_action=logout',
+            dataType: 'json',
+            contentType: 'application/json',
+            headers: {
+                cookieName: oreo
+            },
+            error: errorLogout,
+            success: successLogout
+        });
+
+    });
+
+    initA();
+
+    setInterval(function () {
+        checkStatus();
+    }, intervalStatus);
+});
