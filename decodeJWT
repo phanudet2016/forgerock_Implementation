@@ -1,0 +1,16 @@
+$(document).ready( function () {
+    
+    var getSsoToken = function () {
+        let tokenJWT = document.cookie;
+        let base64Url = tokenJWT.split('.')[1];
+        let base64 = base64Url.replace('-', '+').replace('_', '/');
+        let payload = JSON.parse(window.atob(base64));
+        let ssoToken = payload.forgerock.ssotoken
+        return ssoToken
+    }
+    var showSsoToken = function (ssoToken) {
+        console.log(getSsoToken())
+    }
+
+    showSsoToken()
+});
