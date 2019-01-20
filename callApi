@@ -44,3 +44,28 @@ function httpGetAsync() {
     xmlHttp.send(null);
 }
 httpGetAsync()
+
+function getRequest () {
+    var url = 'http://openam.example.com:8080/openam/json/realms/root/authenticate'
+    var data;
+    axios({
+        method: 'POST',
+        url: url,
+        headers: {
+            'X-OpenAM-Username': 'demo',
+            'Content-Type': 'application/json',
+            'X-OpenAM-Password': 'P@ssw0rd',
+            'Accept-API-Version': 'resource=2.0, protocol=1.0'
+        }
+    })
+    .then((response) => {
+        //resultElement.innerHTML = generateSuccessHTMLOutput(response);
+        var a;
+        a = response.data
+        return console.log(a)
+    })
+    .catch((error) => {
+        //resultElement.innerHTML = generateErrorHTMLOutput(error);
+        console.log(error)
+    })
+}
