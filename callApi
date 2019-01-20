@@ -20,24 +20,27 @@ function ajaxPost () {
 }
 
 function httpGetAsync() {
-        var jwtToken = getSsoToken()
-        //console.log(jwtToken, 'test')
-        var req = {
-            method: 'POST',
-            url: 'http://openam.example.com:8080/openam/json/realms/root/authenticate'
+    //var jwtToken = getSsoToken()
+    //console.log(jwtToken, 'test')
+    var req = {
+        method: 'POST',
+        url: 'http://openam.example.com:8080/openam/json/realms/root/authenticate'
+    }
+    //console.log('URL: ' + req.url)
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.responseType = 'json';
+    xmlHttp.onreadystatechange = () => { 
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+            var x = xmlHttp.response
+            //console.log(xmlHttp.response)
+            return console.log(x.tokenId)
         }
-        //console.log('URL: ' + req.url)
-        var xmlHttp = new XMLHttpRequest();
-        xmlHttp.responseType = 'json';
-        xmlHttp.onreadystatechange = function () { 
-            if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
-                console.log(xmlHttp.response)
-        }
-        xmlHttp.open(req.method, req.url, true);
-        xmlHttp.setRequestHeader('X-OpenAM-Username', 'demo')
-        xmlHttp.setRequestHeader('Content-Type', 'application/json')
-        xmlHttp.setRequestHeader('X-OpenAM-Password', 'P@ssw0rd')
-        xmlHttp.setRequestHeader('Accept-API-Version', 'resource=2.0, protocol=1.0')
-        xmlHttp.send(null);
+    }
+    xmlHttp.open(req.method, req.url, true);
+    xmlHttp.setRequestHeader('X-OpenAM-Username', 'demo')
+    xmlHttp.setRequestHeader('Content-Type', 'application/json')
+    xmlHttp.setRequestHeader('X-OpenAM-Password', 'P@ssw0rd')
+    xmlHttp.setRequestHeader('Accept-API-Version', 'resource=2.0, protocol=1.0')
+    xmlHttp.send(null);
 }
 httpGetAsync()
