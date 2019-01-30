@@ -52,20 +52,16 @@ function getRequest () {
         method: 'POST',
         url: url,
         headers: {
-            'X-OpenAM-Username': 'demo',
+            'X-OpenAM-Username': 'beer',
             'Content-Type': 'application/json',
             'X-OpenAM-Password': 'P@ssw0rd',
             'Accept-API-Version': 'resource=2.0, protocol=1.0'
         }
     })
     .then((response) => {
-        //resultElement.innerHTML = generateSuccessHTMLOutput(response);
-        var a;
-        a = response.data
-        return console.log(a)
+        return console.log(response)
     })
     .catch((error) => {
-        //resultElement.innerHTML = generateErrorHTMLOutput(error);
         console.log(error)
     })
 }
