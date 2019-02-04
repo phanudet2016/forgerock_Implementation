@@ -1,0 +1,9 @@
+export PATH=${PATH}:/opt/opendj/bin
+
+status \
+ --bindDn "cn=Directory Manager" \
+ --bindPassword P@ssw0rd \
+ --hostname localhost \
+ --port 4444 \
+ --usePkcs12TrustStore /opt/opendj/config/keystore \
+ --trustStorePasswordFile /opt/opendj/config/keystore.pin
