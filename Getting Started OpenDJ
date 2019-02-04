@@ -1,0 +1,24 @@
+export PATH=${PATH}:/opt/opendj/bin
+
+<!-- Install DS Software -->
+/path/to/opendj/setup \
+ directory-server \
+ --rootUserDn "cn=Directory Manager" \
+ --rootUserPassword password \
+ --monitorUserPassword password \
+ --hostname localhost \
+ --ldapPort 1389 \
+ --httpPort 8080 \
+ --adminConnectorPort 4444 \
+ --baseDn dc=example,dc=com \
+ --sampleData 10000 \
+ --acceptLicense
+
+<!-- Status -->
+status \
+ --bindDn "cn=Directory Manager" \
+ --bindPassword P@ssw0rd \
+ --hostname localhost \
+ --port 4444 \
+ --usePkcs12TrustStore /opt/opendj/config/keystore \
+ --trustStorePasswordFile /opt/opendj/config/keystore.pin
