@@ -7,3 +7,57 @@ webadm hard nofile 131072
 - Create Directory and change owner
 mkdir /apps/forgerock
 chown -R user:user /apps/forgerock
+
+####### Install DS for CTS
+1. Setup DS for Config Store
+- Server 1
+./setup directory-server --instancePath /apps/forgerock/opendj --rootUserDn cn=Directory\ Manager --rootUserPassword ******** --hostname ${hostname_1} --adminConnectorPort 4444 --ldapPort 1389 --ldapsPort 1636 --httpPort 8080 --httpsPort 8443 --addBaseEntry --baseDn ${base_dn} --acceptLicense
+
+- Server 2
+./setup directory-server --instancePath /apps/forgerock/opendj --rootUserDn cn=Directory\ Manager --rootUserPassword ******** --hostname ${hostname_2} --adminConnectorPort 4444 --ldapPort 1389 --ldapsPort 1636 --httpPort 8080 --httpsPort 8443 --addBaseEntry --baseDn ${base_dn} --acceptLicense
+
+2. Create an new admin account on all DS servers.
+- Go to apps/forgerock/opendj/ldif
+cd /apps/forgerock/opendj/ldif
+vi admin.ldif
+
+****************************************************** admin.ldif *********************************************
+
+dn: cn=rtafAdmin
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+givenName: Rtaf
+sn: Admin
+ds-rlim-size-limit: 0
+ds-rlim-time-limit: 0
+ds-rlim-idle-time-limit: 0
+ds-rlim-lookthrough-limit: 0
+ds-rlim-cursor-entry-limit: 100000
+ds-pwp-password-policy-dn: cn=Root Password Policy,cn=Password Policies,cn=config
+ds-privilege-name: bypass-lockdown
+ds-privilege-name: bypass-acl
+ds-privilege-name: modify-acl
+ds-privilege-name: config-read
+ds-privilege-name: config-write
+ds-privilege-name: ldif-import
+ds-privilege-name: ldif-export
+ds-privilege-name: backend-backup
+ds-privilege-name: backend-restore
+ds-privilege-name: server-lockdown
+ds-privilege-name: server-shutdown
+ds-privilege-name: server-restart
+ds-privilege-name: disconnect-client
+ds-privilege-name: cancel-request
+ds-privilege-name: password-reset
+ds-privilege-name: update-schema
+ds-privilege-name: privilege-change
+ds-privilege-name: unindexed-search
+ds-privilege-name: subentry-write
+ds-privilege-name: changelog-read
+ds-privilege-name: monitor-read
+cn: rtafAdmin
+userPassword: ********
+
+************************************************************************************************************
