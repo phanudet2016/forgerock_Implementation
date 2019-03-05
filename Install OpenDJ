@@ -1,0 +1,9 @@
+######## Pre-requisites
+- Create a "user" Set limits.conf entries for "user" user
+  vi /etc/security/limits.conf
+webadm soft nofile 65536
+webadm hard nofile 131072
+
+- Create Directory and change owner
+mkdir /apps/forgerock
+chown -R user:user /apps/forgerock
