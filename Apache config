@@ -1,0 +1,17 @@
+################# Apache HTTPS / SSL Site, Redirect HTTP to HTTPS ################# 
+<VirtualHost *:80>
+   ServerName portal.example.com
+   DocumentRoot /var/www/html/portal 
+   Redirect permanent / https://portal.example.com/
+</VirtualHost>
+<VirtualHost *:443>
+    SSLEngine on
+    SSLCertificateFile /etc/httpd/ssl-cert/ca.crt
+    SSLCertificateKeyFile /etc/httpd/ssl-cert/ca.key
+    ServerAdmin admin@app.example.com
+    DocumentRoot /var/www/html/portal
+    ServerName portal.example.com
+    ErrorLog /etc/httpd/logs/app.portal.com-error_log
+    CustomLog /etc/httpd/logs/app.portal.com-error_log common
+</VirtualHost>
+###################################################################################
