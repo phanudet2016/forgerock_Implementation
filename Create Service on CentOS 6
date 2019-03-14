@@ -1,0 +1,42 @@
+########################## OpenDJ ##########################
+SourcePath=/apps/forgerock/opendj
+
+case $1 in
+start)
+sh $SourcePath/bin/opendj.init start
+;;
+stop)
+sh $SourcePath/bin/opendj.init stop
+;;
+restart)
+sh $SourcePath/bin/opendj.init restart
+;;
+status)
+ps -ef | grep tomcat
+esac
+exit 0
+############################################################
+
+########################## Tomcat ##########################
+JAVA_HOME=/usr/lib/jvm/jre-1.8.0-openjdk-1.8.0.201.b09-1.el6_10.x86_64
+export JAVA_HOME
+PATH=$JAVA_HOME/bin:$PATH
+export PATH
+CATALINA_HOME=/apps/forgerock/tomcat
+
+case $1 in
+start)
+sh $CATALINA_HOME/bin/startup.sh
+;;
+stop)
+sh $CATALINA_HOME/bin/shutdown.sh
+;;
+restart)
+sh $CATALINA_HOME/bin/shutdown.sh
+sh $CATALINA_HOME/bin/startup.sh
+;;
+status)
+ps -ef | grep tomcat
+esac
+exit 0
+############################################################
