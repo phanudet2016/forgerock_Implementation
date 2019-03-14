@@ -15,7 +15,7 @@ restart)
 sh $SourcePath/bin/opendj.init restart
 ;;
 status)
-ps -ef | grep tomcat
+ps -ef | grep opendj
 esac
 exit 0
 ############################################################
