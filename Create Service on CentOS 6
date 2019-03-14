@@ -1,4 +1,7 @@
 ########################## OpenDJ ##########################
+- cd /apps/forgerock/opendj/bin
+- ./create-rc-script --userName ${username} --outputFile opendj.init
+
 SourcePath=/apps/forgerock/opendj
 
 case $1 in
