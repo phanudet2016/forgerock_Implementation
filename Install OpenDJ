@@ -73,8 +73,8 @@ Server 2
 cd /apps/forgerock/opendj/bin
 
 Server 1
-
 ./import-ldif --hostname ${hostname_1} --port 4444 --bindDN "cn=Directory Manager" --bindPassword ******** --backendID rtafRootUser --ldifFile /apps/forgerock/opendj/ldif/admin.ldif --trustAll
+Server 2
 ./import-ldif --hostname ${hostname_2} --port 4444 --bindDN "cn=Directory Manager" --bindPassword ******** --backendID rtafRootUser --ldifFile /apps/forgerock/opendj/ldif/admin.ldif --trustAll
 
 
