@@ -2,3 +2,6 @@
 
 ##################### Install Web Agent Silently ##################### 
 ./agentadmin --s "/etc/httpd/conf/httpd.conf" "http://openam.example.com:8080/openam" "http://app.example.com:80" "/" "myWebAgent" "/tmp/pwd.txt" --changeOwner
+
+##################### ปรับ timezone ของ Centos ให้เป็นเวลา Thai ICT #####################
+ntpdate clock.nectec.or.th
