@@ -1,0 +1,42 @@
+# Tomcat installation on all openam servers
+    - Unpack Tomcat package 
+          - cd /apps/forgerock/
+          - tar -zxvf  <Installer_Files>/apache-tomcat-8.5.37.tar.gz
+          - mv apache-tomcat-8.5.37 tomcat_openam
+    - Add Tomcat service
+          - sudo su
+          - echo "export JAVA_HOME=/apps/forgerock/jdk1.8.0_191" > /etc/profile.d/setenv.sh
+          - vi /etc/systemd/system/tomcat.service
+*************************************************************************************************
+# Systemd unit file for tomcat
+[Unit]
+Description=Apache Tomcat Web Application Container
+After=syslog.target network.target
+
+[Service]
+Type=forking
+Environment=JAVA_HOME=/apps/forgerock/jdk1.8.0_191
+Environment=CATALINA_PID=/apps/forgerock/tomcat_openam/temp/tomcat.pid
+Environment=CATALINA_HOME=/apps/forgerock/tomcat_openam
+Environment=CATALINA_BASE=/apps/forgerock/tomcat_openam
+Environment='CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC'
+Environment='JAVA_OPTS=-Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom'
+
+ExecStart=/bin/sh -c '. /etc/profile.d/setenv.sh; /apps/forgerock/tomcat_openam/bin/startup.sh'
+ExecStop=/bin/kill -15 $MAINPID
+
+User=webadm
+Group=webgroup
+UMask=0007
+RestartSec=10
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+*************************************************************************************************
+          - systemctl daemon-reload
+    - Start Tomcat service
+          - systemctl start tomcat
+    - Tomcat service is started
+          - ps -ef | grep tomcat
+
