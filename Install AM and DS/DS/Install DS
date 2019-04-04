@@ -1,0 +1,122 @@
+######## Pre-requisites
+- Create a "user" Set limits.conf entries for "user" user
+  vi /etc/security/limits.conf
+user soft nofile 65536
+user hard nofile 131072
+
+- Create Directory and change owner
+mkdir /apps/forgerock
+chown -R user:user /apps/forgerock
+
+####### Install DS for CTS
+1. Setup DS for Config Store
+cd /apps/forgerock/opendj
+Server 1
+./setup directory-server --instancePath /apps/forgerock/opendj --rootUserDn cn=Directory\ Manager --rootUserPassword ******** --hostname ${hostname_1} --adminConnectorPort 4444 --ldapPort 1389 --ldapsPort 1636 --httpPort 8080 --httpsPort 8443 --addBaseEntry --baseDn ${base_dn} --acceptLicense
+Server 2
+./setup directory-server --instancePath /apps/forgerock/opendj --rootUserDn cn=Directory\ Manager --rootUserPassword ******** --hostname ${hostname_2} --adminConnectorPort 4444 --ldapPort 1389 --ldapsPort 1636 --httpPort 8080 --httpsPort 8443 --addBaseEntry --baseDn ${base_dn} --acceptLicense
+
+2. Create an new admin account on all DS Server 1 and Server 2.
+- Go to apps/forgerock/opendj/ldif
+cd /apps/forgerock/opendj/ldif
+vi admin.ldif
+
+------------------------------------------------------------ admin.ldif ------------------------------------------------------------
+dn: cn=rtafAdmin
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+givenName: Rtaf
+sn: Admin
+ds-rlim-size-limit: 0
+ds-rlim-time-limit: 0
+ds-rlim-idle-time-limit: 0
+ds-rlim-lookthrough-limit: 0
+ds-rlim-cursor-entry-limit: 100000
+ds-pwp-password-policy-dn: cn=Root Password Policy,cn=Password Policies,cn=config
+ds-privilege-name: bypass-lockdown
+ds-privilege-name: bypass-acl
+ds-privilege-name: modify-acl
+ds-privilege-name: config-read
+ds-privilege-name: config-write
+ds-privilege-name: ldif-import
+ds-privilege-name: ldif-export
+ds-privilege-name: backend-backup
+ds-privilege-name: backend-restore
+ds-privilege-name: server-lockdown
+ds-privilege-name: server-shutdown
+ds-privilege-name: server-restart
+ds-privilege-name: disconnect-client
+ds-privilege-name: cancel-request
+ds-privilege-name: password-reset
+ds-privilege-name: update-schema
+ds-privilege-name: privilege-change
+ds-privilege-name: unindexed-search
+ds-privilege-name: subentry-write
+ds-privilege-name: changelog-read
+ds-privilege-name: monitor-read
+cn: rtafAdmin
+userPassword: ********
+----------------------------------------------------------------------------------------------------------------------------
+
+- Create backend for the admin account
+mkdir /apps/forgerock/opendj/db/rtafRootUser
+cd /apps/forgerock/opendj/bin
+
+Server 1
+./dsconfig create-backend --hostname ${hostname_1} --port 4444 --bindDN "cn=Directory Manager" --bindPassword ******** --backend-name rtafRootUser --type ldif --set enabled:true --set base-dn:cn=rtafAdmin --set ldif-file:db/rtafRootUser/rtafRootUser.ldif --set is-private-backend:true --trustAll --no-prompt
+Server 2
+./dsconfig create-backend --hostname ${hostname_2} --port 4444 --bindDN "cn=Directory Manager" --bindPassword ******** --backend-name rtafRootUser --type ldif --set enabled:true --set base-dn:cn=rtafAdmin --set ldif-file:db/rtafRootUser/rtafRootUser.ldif --set is-private-backend:true --trustAll --no-prompt
+
+- Import admin account to the new backend
+cd /apps/forgerock/opendj/bin
+
+Server 1
+./import-ldif --hostname ${hostname_1} --port 4444 --bindDN "cn=Directory Manager" --bindPassword ******** --backendID rtafRootUser --ldifFile /apps/forgerock/opendj/ldif/admin.ldif --trustAll
+Server 2
+./import-ldif --hostname ${hostname_2} --port 4444 --bindDN "cn=Directory Manager" --bindPassword ******** --backendID rtafRootUser --ldifFile /apps/forgerock/opendj/ldif/admin.ldif --trustAll
+
+
+
+######## Create suffix for CTS ######## 
+- Go to /apps/forgerock/opendj/bin
+
+Server 1
+./dsconfig create-backend --set base-dn:${cts_base_dn} --set enabled:true --type je --backend-name ctsRoot --hostname ${hostname_1} --port 4444 --bindDn cn=Directory\ Manager --bindPassword ******** --trustAll --no-prompt
+Server 2
+./dsconfig create-backend --set base-dn:${cts_base_dn} --set enabled:true --type je --backend-name ctsRoot --hostname ${hostname_2} --port 4444 --bindDn cn=Directory\ Manager --bindPassword ******** --trustAll --no-prompt
+
+- Create suffix entry on Server 1 and Server 2
+cd /apps/forgerock/opendj/ldif
+vi cts.ldif
+
+-------- cts.ldif -------- 
+dn: ${CTS_BASE_DN}
+objectclass: top
+objectclass: domain
+--------------------------
+Server 1 
+./ldapmodify -h ${hostname_1} -p 1389 -D "cn=Directory Manager" -w ******** -f /apps/forgerock/opendj/ldif/cts.ldif
+Server 2 
+./ldapmodify -h ${hostname_2} -p 1389 -D "cn=Directory Manager" -w ******** -f /apps/forgerock/opendj/ldif/cts.ldif
+
+
+
+############# Configure Replication server for Configuration Data Store and CTS ################
+cd /apps/forgerock/opendj/bin
+
+- replicate the data for Configuration data store.
+./dsreplication configure --adminUID admin --adminPassword ******** --baseDN ${base_dn} --host1 ${hostname_1} --port1 4444 --bindDN1 "cn=Directory Manager" --bindPassword1 ******** --replicationPort1 8989 --host2 ${hostname_2} --port2 4444 --bindDN2 "cn=Directory Manager" --bindPassword2 ******** --replicationPort2 8989 --trustAll --no-prompt
+./dsreplication initialize --adminUID admin --adminPassword ******** --baseDN ${base_dn} --hostSource ${hostname_1} --portSource 4444 --hostDestination ${hostname_2} --portDestination 4444 --trustAll --no-prompt
+
+- replicate the data for CTS.
+./dsreplication configure --adminUID admin --adminPassword ******** --baseDN ${cts_base_dn}  --host1 ${hostname_1} --port1 4444 --bindDN1 "cn=Directory Manager" --bindPassword1 ******** --replicationPort1 8989 --host2 ${hostname_2} --port2 4444 --bindDN2 "cn=Directory Manager" --bindPassword2 ******** --replicationPort2 8989 --trustAll --no-prompt
+./dsreplication initialize --adminUID admin --adminPassword ******** --baseDN ${cts_base_dn} --hostSource ${hostname_1} --portSource 4444 --hostDestination ${hostname_2} --portDestination 4444 --trustAll --no-prompt
+
+############# etc #############
+- Check Status
+./status --offline
+
+- Check Replication
+./dsreplication status
