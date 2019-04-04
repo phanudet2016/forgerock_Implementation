@@ -1,0 +1,26 @@
+# Create a "webadm" Set limits.conf entries for "webadm" user.
+    - vi /etc/security/limits.conf
+    - add below lines
+          - webadm soft nofile 65536
+          - webadm hard nofile 131:q072
+          ** Save the file **
+# Copy all the installer files 
+    - jdk-8u191-linux-x64.tar.gz
+    - DS-6.5.0.zip
+    - apache-tomcat-8.5.37.tar.gz
+    - AM-6.5.0.1.zip
+# Copy all the required certificates
+    - <certificate_name>.cer files
+    - <certificate_name>.pb7 files
+# Install JDK version "1.8" on all the servers (OpenAM and OpenDJ Version: 1.8.0_25 is installed on UAT systems)
+    - Install Path
+          - mkdir /apps/forgerock
+          - cd /apps/forgerock
+    - Unpack Java package
+          - tar -zxvf jdk-8u191-linux-x64.tar.gz
+    - Set JAVA_HOME 
+          - vi .bash_profile and Insert the text below.
+*******************************************************
+export JAVA_HOME=/apps/forgerock/jdk1.8.0_191
+PATH=$PATH:$HOME/.local/bin:$HOME/bin:$JAVA_HOME/bin
+*******************************************************
