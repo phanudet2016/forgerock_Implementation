@@ -3,7 +3,7 @@ keytool -genkey -alias tomcat -keyalg RSA -keystore <your_keystore_filename>.jks
 
 
 <!-- Define a SSL Coyote HTTP/1.1 Connector on port 8443 -->
-<!-- Path => /opt/tomcat/conf/ -->
+<!-- Path => /opt/tomcat/conf/server.xml -->
 <Connector
            protocol="org.apache.coyote.http11.Http11NioProtocol"
            port="8443" maxThreads="200"
@@ -12,7 +12,7 @@ keytool -genkey -alias tomcat -keyalg RSA -keystore <your_keystore_filename>.jks
            clientAuth="false" sslProtocol="TLS"/>
            
 
-<!-- Redirect HTTPS (HTTPS Only) -->
+<!-- Redirect HTTPS (HTTPS Only) Path => /opt/tomcat/conf/web.xml -->
 <security-constraint>
     <web-resource-collection>
         <web-resource-name>HTTPSOnly</web-resource-name>
