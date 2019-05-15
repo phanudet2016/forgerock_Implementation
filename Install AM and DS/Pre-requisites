@@ -2,7 +2,7 @@
     - vi /etc/security/limits.conf
     - add below lines
           - webadm soft nofile 65536
-          - webadm hard nofile 131:q072
+          - webadm hard nofile 131072
           ** Save the file **
 # Copy all the installer files 
     - jdk-8u191-linux-x64.tar.gz
