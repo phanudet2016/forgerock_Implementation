@@ -25,8 +25,8 @@ Environment='JAVA_OPTS=-Djava.awt.headless=true -Djava.security.egd=file:/dev/./
 ExecStart=/bin/sh -c '. /etc/profile.d/setenv.sh; /apps/forgerock/tomcat_openam/bin/startup.sh'
 ExecStop=/bin/kill -15 $MAINPID
 
-User=webadm
-Group=webgroup
+User=webadmin
+Group=webadmin
 UMask=0007
 RestartSec=10
 Restart=always
