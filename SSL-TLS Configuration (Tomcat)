@@ -9,7 +9,7 @@ keytool -genkey -alias tomcat -keyalg RSA -keystore <your_keystore_filename>.jks
            port="8443" maxThreads="200"
            scheme="https" secure="true" SSLEnabled="true"
            keystoreFile="conf/keystore.jks" keystorePass="changeit"
-           clientAuth="false" sslProtocol="TLS"/>
+           clientAuth="false" sslProtocol="TLS" URIEncoding="UTF-8"/>
            
 
 <!-- Redirect HTTPS (HTTPS Only) Path => /opt/tomcat/conf/web.xml -->
