@@ -37,6 +37,8 @@ WantedBy=multi-user.target
           - systemctl daemon-reload
     - Start Tomcat service
           - systemctl start tomcat
+    - Auto start Tomcat after boot
+          - systemctl enable tomcat
     - Tomcat service is started
           - ps -ef | grep tomcat
 
