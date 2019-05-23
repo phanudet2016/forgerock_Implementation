@@ -12,7 +12,7 @@
           2.1.5) Select "DEPLOYMENT" and "SERVERS"
           2.1.6) Click on the server names
           2.1.7) Click "Avanced"
-          2.1.8) Add "com.sun.am.iis_owa_enabled" to true
+          2.1.8) Add "com.sun.am.iis_owa_enabled" to "true"
           2.1.9) Add "com.sun.am.replaypasswd.key" to &{KEY} and click "Save Changes"
           
 3. Set Authentication Post Processing Classes
