@@ -32,12 +32,12 @@
           4.1.8) Enable "Cross Domain SSO" and click "Save Changes"
           4.1.9) Select ""Advanced" tab
           4.1.10) Edit "Authentication Type" to "basic" value
-          4.1.11)	Add "Replay Password Key"
-          4.1.12)	Enable "Filter configured with OWA"
-          4.1.13)	Enable "Change URL Protocol to https"""
-          4.1.14)	Enable "Show Password in HTTP Header""
-          4.1.15)	Enable "Logon and Impersonation"
-          4.1.16)	Click "Save Changes"
+          4.1.11) Add "Replay Password Key"
+          4.1.12) Enable "Filter configured with OWA"
+          4.1.13) Enable "Change URL Protocol to https"""
+          4.1.14) Enable "Show Password in HTTP Header""
+          4.1.15) Enable "Logon and Impersonation"
+          4.1.16) Click "Save Changes"
 
 
 
