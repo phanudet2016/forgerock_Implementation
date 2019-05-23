@@ -16,7 +16,7 @@
           2.1.9) Add "com.sun.am.replaypasswd.key" to &{KEY} and click "Save Changes"
           
 3. Set Authentication Post Processing Classes
-      3.1) Goto realm -> Authentication - Settings -> Post Authentication Processing -> Input: Authentication Post Processing Classes
+      3.1) Goto realm -> Authentication -> Settings -> Post Authentication Processing -> Input: Authentication Post Processing Classes
       3.2) Add "com.sun.identity.authentication.spi.ReplayPasswd" and click "Save Changes"
       
     
