@@ -1,0 +1,43 @@
+1. Generate Password Key
+      1.1) cd ${TOMCAT_PATH}/webapps/openam/WEB-INF/lib/
+      1.2) java -cp forgerock-util-24.0.1.jar:openam-core-6.5.0.1.jar:openam-shared-6.5.0.1.jar:openam-keystore-6.5.0.1.jar com.sun.identity.common.DESGenKey
+        ---- Key ==> "KEY" ----
+        
+2. Setup "Password Key" In AM
+      2.1) Enable Password Replay feature in AM
+          2.1.1) Select "CONFIGURE" and "SERVER DEFAULTS"
+          2.1.2) Click "Advanced"
+          2.1.3) Add "com.sun.am.iis_owa_enabled" to true
+          2.1.4) Add "com.sun.am.replaypasswd.key" to &{KEY} that the value is generated from the previous command
+          2.1.5) Select "DEPLOYMENT" and "SERVERS"
+          2.1.6) Click on the server names
+          2.1.7) Click "Avanced"
+          2.1.8) Add "com.sun.am.iis_owa_enabled" to true
+          2.1.9) Add "com.sun.am.replaypasswd.key" to &{KEY} and click "Save Changes"
+          
+3. Set Authentication Post Processing Classes
+      3.1) Goto realm -> Authentication - Settings -> Post Authentication Processing -> Input: Authentication Post Processing Classes
+      3.2) Add "com.sun.identity.authentication.spi.ReplayPasswd" and click "Save Changes"
+      
+    
+4. Update IIS webagent for OWA
+      4.1) Configure IIS web agent for OWA
+          4.1.1) Select "iisagent"
+          4.1.2) Enable "SSO Only Mode" and click "Save Changes"
+          4.1.3) Select "Application" tab
+          4.1.4) Select "Profile Attribute Fetch Mode" to "HTTP_HEADER" value and click "Save Changes"
+          4.1.5) Select "SSO" tab
+          4.1.6) Change "Cookie Name"
+          4.1.7) Change "CDSSO Redirect URI"
+          4.1.8) Enable "Cross Domain SSO" and click "Save Changes"
+          4.1.9) Select ""Advanced" tab
+          4.1.10)	Edit "Authentication Type" to "basic" value
+          4.1.11)	Add "Replay Password Key"
+          4.1.12)	Enable "Filter configured with OWA"
+          4.1.13)	Enable "Change URL Protocol to https"""
+          4.1.14)	Enable "Show Password in HTTP Header""
+          4.1.15)	Enable "Logon and Impersonation"
+          4.1.16)	Click "Save Changes"
+
+
+
