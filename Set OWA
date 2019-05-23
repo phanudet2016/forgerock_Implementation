@@ -28,9 +28,9 @@
           4.1.4) Select "Profile Attribute Fetch Mode" to "HTTP_HEADER" value and click "Save Changes"
           4.1.5) Select "SSO" tab
           4.1.6) Change "Cookie Name"
-          4.1.7) Change "CDSSO Redirect URI"
+          4.1.7) Change "CDSSO Redirect URI" to "owa/agent/cdsso-oauth2"
           4.1.8) Enable "Cross Domain SSO" and click "Save Changes"
-          4.1.9) Select ""Advanced" tab
+          4.1.9) Select "Advanced" tab
           4.1.10) Edit "Authentication Type" to "basic" value
           4.1.11) Add "Replay Password Key"
           4.1.12) Enable "Filter configured with OWA"
