@@ -1,0 +1,36 @@
+1. Create rc script.
+    1.1 cd /apps/forgerock/opendj/bin
+    1.2 ./create-rc-script --userName webadm --outputFile opendj.init
+2. Create opendj.service file
+    2.1 sudo su
+    2.2 nano /etc/systemd/system/opendj.service
+-------------------------------------------------------------------
+[Unit]
+SourcePath=/apps/forgerock/opendj/bin
+Description=ForgeRock Directory Services 5.5.2
+Before=runlevel5.target shutdown.target
+After=
+Conflicts=shutdown.target
+
+[Service]
+Type=forking
+Restart=always
+TimeoutSec=5min
+IgnoreSIGPIPE=no
+KillMode=process
+GuessMainPID=no
+RemainAfterExit=yes
+ExecStart=/apps/forgerock/opendj/bin/opendj.init start
+ExecStop=/apps/forgerock/opendj/bin/opendj.init stop
+
+[Install]
+WantedBy=multi-user.target
+-------------------------------------------------------------------
+3. Re-Start the service
+    3.1 cd /apps/forgerock/opendj/bin
+    3.2 ./stop-ds
+    3.3 systemctl daemon-reload
+    3.4 systemctl start opendj
+    3.5 systemctl enable opendj
+ 
+
