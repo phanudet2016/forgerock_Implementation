@@ -45,6 +45,8 @@ Type=oneshot
 Environment=JAVA_HOME=/apps/forgerock/jdk1.8.0_211
 Environment=CATALINA_PID=/apps/forgerock/tomcat_openam/temp/tomcat.pid
 Environment='CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC'
+
+#ExecStart=/bin/sh -c '. /etc/profile.d/setenv.sh; /apps/forgerock/tomcat_openam/bin/startup.sh'
 ExecStart=/apps/forgerock/tomcat_openam/bin/startup.sh
 ExecStop=/apps/forgerock/tomcat_openam/bin/shutdown.sh
 ExecReload=/usr/bin/kill -s HUP $MAINPID
