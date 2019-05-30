@@ -34,6 +34,25 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 *************************************************************************************************
+OR
+*************************************************************************************************
+[Unit]
+Description=tomcat
+After=network.target
+
+[Service]
+Type=oneshot
+Environment=JAVA_HOME=/apps/forgerock/jdk1.8.0_211
+Environment=CATALINA_PID=/apps/forgerock/tomcat_openam/temp/tomcat.pid
+Environment='CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC'
+ExecStart=/apps/forgerock/tomcat_openam/bin/startup.sh
+ExecStop=/apps/forgerock/tomcat_openam/bin/shutdown.sh
+ExecReload=/usr/bin/kill -s HUP $MAINPID
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+*************************************************************************************************
           - systemctl daemon-reload
     - Start Tomcat service
           - systemctl start tomcat
