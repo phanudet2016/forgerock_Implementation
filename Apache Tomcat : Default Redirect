@@ -1,0 +1,15 @@
+### This article explains how to perform a redirect from the root location on an Apache Tomcat installation to a specific page.
+
+- Create a file called "index.jsp" in the "ROOT" directory with the following contents. If the file is already present, amend it.
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="ISO-8859-1"%>
+<html>
+<head>
+    <title>JSP Redirect</title>
+    </head>
+    <body>
+       <%
+          String redirectURL = "https://www.example/admin/login.html";
+          response.sendRedirect(redirectURL);
+        %>
+    </body>
+</html>
