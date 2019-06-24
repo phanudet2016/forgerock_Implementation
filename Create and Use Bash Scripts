@@ -31,8 +31,8 @@ find /path/to/directory/* -mtime +t -exec rm -f {} \;
 --------------------------------------------------------
 #!/bin/bash
 
-create_time=$(date '+%F_%X') //กำหนดตัวแปรเวลา y-m-d_00:00:00
-time=${create_time// /} //ตัดช่องว่างในตัวแปร
+set_time=$(date '+%F_%X') //กำหนดตัวแปรเวลา y-m-d_00:00:00
+time=${set_time// /} //ตัดช่องว่างในตัวแปร
 
 find /apps/forgerock/nforceam/openam/ -name "log" -mtime +90 -exec cp -rf {} /apps/forgerock/backuplog_am/ \; //คัดลอกไฟล์ที่มีอายุ 90 วัน ไปยัง Directory backup_am หรือในกรณีที่ต้องการเป็นนาทีให้ใช้ -mmin
 # OR cp -rf /apps/forgerock/nforceam/openam/log /apps/forgerock/backuplog_am/
