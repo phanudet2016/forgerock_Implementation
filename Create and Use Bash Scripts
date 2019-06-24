@@ -39,5 +39,6 @@ mv /apps/forgerock/backuplog_am/log /apps/forgerock/backuplog_am/${time} //เ�
 rm -rf /apps/forgerock/nforceam/openam/log/* //ลบไฟล์ log จาก Directory เก่า
 --------------------------------------------------------
 4. chmod u+x backlog_am //กําหนด permission execute
+5. 00 1 01 */3 * /bin/backlog_am //At 01:00 on day-of-month 1 in every 3rd month.
 
 ########################################################
