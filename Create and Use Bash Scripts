@@ -1,19 +1,43 @@
-- cd bin
-- touch hello-world
-- nano hello-world
-***********************************
+1. cd /bin
+2. touch hello-world
+3. nano hello-world
+------------------------------------
 #!/bin/bash
 
 echo Hello, World!
-***********************************
-- chmod u+x hello-world
+------------------------------------
+4. chmod u+x hello-world
 
-** Automating the process
-- cd bin
-- touch find-and-delete
-- nano find-and-delete
-********************************************************
+################# Automating the process ###############
+1. cd /bin
+2. touch find-and-delete
+3. nano find-and-delete
+--------------------------------------------------------
 #!/bin/bash
  
 find /path/to/directory/* -mtime +t -exec rm -f {} \;
-********************************************************
+--------------------------------------------------------
+4. chmod u+x find-and-delete
+5. crontab -e
+--------------------------------------------------------
+* * * * * /bin/find-and-delete >/dev/null 2>&1
+--------------------------------------------------------
+########################################################
+
+###################### USE CASE ########################
+1. cd /bin
+2. touch backlog_am
+3. nano backlog_am
+--------------------------------------------------------
+#!/bin/bash
+
+create_time=$(date '+%F_%X') //กำหนดตัวแปรเวลา y-m-d_00:00:00
+time=${create_time// /} //ตัดช่องว่างในตัวแปร
+
+find /apps/forgerock/nforceam/openam/ -name "log" -mtime +90 -exec cp -rf {} /apps/forgerock/backuplog_am/ \; //คัดลอกไฟล์ที่มีอายุ 90 วัน ไปยัง Directory backup_am หรือในกรณีที่ต้องการเป็นนาทีให้ใช้ -mmin
+mv /apps/forgerock/backuplog_am/log /apps/forgerock/backuplog_am/${time} //เปลี่ยนขื่อไฟล์ log ให้เป็น format ของวันที่และเวลา
+rm -rf /apps/forgerock/nforceam/openam/log/* //ลบไฟล์ log จาก Directory เก่า
+--------------------------------------------------------
+4. chmod u+x backlog_am //กําหนด permission execute
+
+########################################################
