@@ -1,0 +1,6 @@
+- cd bin
+- touch hello-world
+- nano hello-world
+  #!/bin/bash
+  echo Hello, World!
+- chmod u+x hello-world
