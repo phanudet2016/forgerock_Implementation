@@ -41,5 +41,6 @@ rm -rf /apps/forgerock/nforceam/openam/log/* //ลบไฟล์ log จาก 
 --------------------------------------------------------
 4. chmod u+x backlog_am //กําหนด permission execute
 5. 00 01 01 */3 * /bin/backlog_am >/dev/null 2>&1 //At 01:00 on day-of-month 1 in every 3rd month.
+# OR 05 01 * 1,4,7,10 * /bin/backlog_am >/dev/null 2>&1 //At 01:05 in January, April, July, and October.
 
 ########################################################
