@@ -6,7 +6,7 @@
 
 echo Hello, World!
 ------------------------------------
-4. chmod u+x hello-world
+4. chmod u+x hello-world //OR chmod +x hello-world
 
 ################# Automating the process ###############
 1. cd /bin
@@ -17,7 +17,7 @@ echo Hello, World!
  
 find /path/to/directory/* -mtime +t -exec rm -f {} \;
 --------------------------------------------------------
-4. chmod u+x find-and-delete
+4. chmod u+x find-and-delete //OR chmod +x find-and-delete
 5. crontab -e
 --------------------------------------------------------
 * * * * * /bin/find-and-delete >/dev/null 2>&1
