@@ -22,12 +22,12 @@ cd /apps/forgerock/opendj/ldif
 vi admin.ldif
 
 ------------------------------------------------------------ admin.ldif ------------------------------------------------------------
-dn: cn=rtafAdmin
+dn: cn=nforceAdmin
 objectClass: top
 objectClass: person
 objectClass: organizationalPerson
 objectClass: inetOrgPerson
-givenName: Rtaf
+givenName: nForce
 sn: Admin
 ds-rlim-size-limit: 0
 ds-rlim-time-limit: 0
@@ -56,18 +56,18 @@ ds-privilege-name: unindexed-search
 ds-privilege-name: subentry-write
 ds-privilege-name: changelog-read
 ds-privilege-name: monitor-read
-cn: rtafAdmin
+cn: nforceAdmin
 userPassword: ********
 ----------------------------------------------------------------------------------------------------------------------------
 
 - Create backend for the admin account
-mkdir /apps/forgerock/opendj/db/rtafRootUser
+mkdir /apps/forgerock/opendj/db/nforceRootUser
 cd /apps/forgerock/opendj/bin
 
 Server 1
-./dsconfig create-backend --hostname ${hostname_1} --port 4444 --bindDN "cn=Directory Manager" --bindPassword ******** --backend-name rtafRootUser --type ldif --set enabled:true --set base-dn:cn=rtafAdmin --set ldif-file:db/rtafRootUser/rtafRootUser.ldif --set is-private-backend:true --trustAll --no-prompt
+./dsconfig create-backend --hostname ${hostname_1} --port 4444 --bindDN "cn=Directory Manager" --bindPassword ******** --backend-name nforceRootUser --type ldif --set enabled:true --set base-dn:cn=nforceAdmin --set ldif-file:db/nforceRootUser/nforceRootUser.ldif --set is-private-backend:true --trustAll --no-prompt
 Server 2
-./dsconfig create-backend --hostname ${hostname_2} --port 4444 --bindDN "cn=Directory Manager" --bindPassword ******** --backend-name rtafRootUser --type ldif --set enabled:true --set base-dn:cn=rtafAdmin --set ldif-file:db/rtafRootUser/rtafRootUser.ldif --set is-private-backend:true --trustAll --no-prompt
+./dsconfig create-backend --hostname ${hostname_2} --port 4444 --bindDN "cn=Directory Manager" --bindPassword ******** --backend-name nforceRootUser --type ldif --set enabled:true --set base-dn:cn=nforceAdmin --set ldif-file:db/nforceRootUser/nforceRootUser.ldif --set is-private-backend:true --trustAll --no-prompt
 
 - Import admin account to the new backend
 cd /apps/forgerock/opendj/bin
